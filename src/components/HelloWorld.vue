@@ -25,12 +25,7 @@ a {
 
 <div class="hello text-center">
     <h3 style="margin-top:1em"> Cart</h3>
-    <div class="inline-form">
-        <input placeholder="Enter a UserId" v-model="userInput" class="from-control" @keyup.enter="setUser()" />
-        <button @click="setUser()" style="margin-left:1em" class="btn btn-primary">Set User</button>
-    </div>
-    <p style="margin-top:1em" v-if="userId">current UserId is <u style="color:#42b983">{{userId}}</u></p>
-
+    <hr>
     <div class="row" v-if="userId">
         <div class="col-sm-8">
             <div v-if="total>0" class="text-right">Total Price: <b>{{total}}.00</b></div>
@@ -62,6 +57,9 @@ a {
             </b-card>
         </div>
     </div>
+    <div v-else>
+      <i>Please Set a userId from toolbar</i>
+    </div>
     <b-modal ref="validationModalRef" size="lg" hide-footer title="Coupon Code Validation">
         <div class="d-block text-center">
             <b-progress v-if="validationLoader" :value="100" variant="info" striped :animated="true" class="mb-2"></b-progress>
@@ -75,13 +73,15 @@ a {
             </div>
         </div>
     </b-modal>
-    <b-modal ref="appliedModalRef" hide-footer title="Coupon Code Application">
+    <b-modal ref="appliedModalRef" size="lg" hide-footer title="Cart After Coupon">
         <div class="d-block text-center">
             <b-progress v-if="appliedLoader" :value="100" variant="info" striped :animated="true" class="mb-2"></b-progress>
             <div v-else>
-                <p>Total Price<b><strike>{{total}}</strike>&nbsp;&nbsp;{{newTotal}}</b></p>
+                <b-alert v-if="this.couponError" show variant="danger"><b>Coupon Error :</b>{{this.couponError}}</b-alert>
+                <p v-if="!this.couponError">Total Price : <b><strike>{{total}}.00</strike>&nbsp;&nbsp;{{newTotal}}.00</b></p>
+                <p v-else>Total Price : <b>{{total}}.00</b></p>
                 <div v-for="item in cart">
-                  <discount-product :product="item" :newPrice="newPrice"/>
+                  <discount-product :product="item" :newPrice="newPrice" :coupon="appliedCouponCode"/>
                 </div>
             </div>
         </div>
@@ -104,15 +104,16 @@ export default {
     },
     data() {
         return {
-            userInput: "",
             validationLoader: false,
             validationResponse: {},
             appliedLoader: false,
             appliedResponse: {},
             validationCouponCode: "",
+            appliedCouponCode: "",
             loading: false,
             newPrice:{},
-            newTotal:0
+            newTotal:0,
+            couponError : false
         }
     },
     methods: {
@@ -131,10 +132,16 @@ export default {
                     this.appliedLoader = true;
                     this.newPrice = {};
                     this.newTotal = 0;
+                    this.couponError = "";
                     PostsService.applyCode(code, this.userId).then(response => {
+                        if(!response.data.status){
+                          this.newPrice = {}
+                          this.couponError = response.data.reason;
+                          return;
+                        }
+
                         this.newPrice = response.data.newPrice;
                         this.cart.forEach(item => {
-
                           if(this.newPrice[""+item.productId] || this.newPrice[""+item.productId] === 0 ){
                             this.newTotal+=this.newPrice[''+item.productId];
                           }else{
@@ -147,17 +154,6 @@ export default {
                 },
             hideValidation() {
                 this.$refs.validationModalRef.hide()
-            },
-            setUser() {
-                this.$store.state.userId = this.userInput;
-                this.loading = true;
-                const response = PostsService.createCart(this.userId).then(response => {
-                    this.$store.commit('applyCart', response.data);
-                }).catch(err => {
-                    this.error = err;
-                }).then(() => {
-                    this.loading = false;
-                });
             }
     },
     computed: {

@@ -11,12 +11,20 @@
           <b-nav-item :active="link == '/'" href="#/">Cart</b-nav-item>
           <b-nav-item :active="link == '/listings'" href="#/listings">Listings</b-nav-item>
           <b-nav-item :active="link == '/coupons'" href="#/coupons">Coupons</b-nav-item>
+          <b-nav-item style="position:absolute;right:1em;top:0em">
+
+            <div class="inline-form">
+                <input placeholder="Enter a UserId" v-model="userInput" class="from-control" @keyup.enter="setUser()" />
+                <button @click="setUser()" style="margin-left:1em" class="btn btn-primary">Set User</button>
+                <span>{{userId}}</span>
+            </div>
+          </b-nav-item>
         </b-navbar-nav>
       </b-collapse>
     </b-navbar>
-
     <div v-if="loading">
       <b-progress :value="100" variant="info" striped :animated="true" class="mb-2"></b-progress>
+      <p style="margin-top:1em" v-if="userId">current UserId is <u style="color:#42b983">{{userId}}</u></p>
     </div>
     <router-view class="container" v-else/>
   </div>
@@ -31,6 +39,7 @@ export default {
   data:function(){
     return {
       loading:false,
+      userInput:""
     }
   },mounted () {
     this.getProducts();
@@ -66,11 +75,25 @@ export default {
         let couponsList = response.data;
         this.$store.state.coupons = couponsList;
         console.log(couponsList);
+    },
+    setUser() {
+        this.$store.state.userId = this.userInput;
+        this.loading = true;
+        const response = PostsService.createCart(this.userId).then(response => {
+            this.$store.commit('applyCart', response.data);
+        }).catch(err => {
+            this.error = err;
+        }).then(() => {
+            this.loading = false;
+        });
     }
   },
   computed:{
     link: function(){
       return this.$route.path;
+    },
+    userId:function(){
+      return this.$store.state.userId;
     }
   }
 }
