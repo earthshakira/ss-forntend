@@ -2,7 +2,7 @@
   <div class="posts">
       <div>
         <div v-if="!userId"   class="text-center ">
-          Hey, please set a user from the <a href="#/">cart page</a> , No User No Cart
+          Hey, please set a user from the navbar input its just a string to identify a cart
         </div>
         <div v-else>
           <div class="row" style="margin-bottom:2em">
